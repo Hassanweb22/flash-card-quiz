@@ -7,6 +7,10 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { CardList } from "../../../components/ui/Card";
 import { Modal } from "../../../components/ui/Modal";
+import { StatsCard } from "../../../components/ui/StatsCard";
+import { SessionList } from "../../../components/ui/SessionList";
+import { computeDeckStats } from "../../../lib/stats";
+import { formatDate } from "../../../lib/utils";
 import { toast, Toaster } from "react-hot-toast";
 
 export default function DeckPage() {
@@ -24,6 +28,7 @@ export default function DeckPage() {
 
   const deckId = params.id as string;
   const deck = data.decks.find((d) => d.id === deckId);
+  const deckStats = deck ? computeDeckStats(data, deckId) : null;
 
   if (!deck) {
     return (
@@ -144,6 +149,44 @@ export default function DeckPage() {
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Deck Stats Section */}
+          {deckStats && deckStats.totalSessions > 0 && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                Study Statistics
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <StatsCard
+                  label="Total Sessions"
+                  value={deckStats.totalSessions}
+                />
+                <StatsCard
+                  label="Last Studied"
+                  value={deckStats.lastStudied ? formatDate(deckStats.lastStudied) : 'Never'}
+                />
+                <StatsCard
+                  label="Last Accuracy"
+                  value={deckStats.lastAccuracy !== null ? `${Math.round(deckStats.lastAccuracy)}%` : 'N/A'}
+                />
+                <StatsCard
+                  label="Study Streak"
+                  value={`${deckStats.streakDays} day${deckStats.streakDays !== 1 ? 's' : ''}`}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Recent Sessions Section */}
+          {deckStats && deckStats.recentSessions.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                Recent Study Sessions
+              </h2>
+              <SessionList sessions={deckStats.recentSessions} deckTitle={deck.title} />
+            </div>
+          )}
+
+          {/* Cards Section */}
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               Cards in this Deck

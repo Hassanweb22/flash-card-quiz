@@ -6,15 +6,19 @@ import { useLocalStorage } from '../../../hooks/useLocalStorage';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { toast, Toaster } from 'react-hot-toast';
+import { shuffleArray } from '../../../lib/utils';
+import { StudySession } from '../../../lib/types';
 
 export default function StudyPage() {
   const router = useRouter();
   const params = useParams();
-  const { data, updateCard } = useLocalStorage();
+  const { data, addStudySession } = useLocalStorage();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [shuffleCount, setShuffleCount] = useState(0);
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [cardsStudied, setCardsStudied] = useState<Set<string>>(new Set());
   const [studyStats, setStudyStats] = useState({
     correctAnswers: 0,
     totalQuestions: 0,
@@ -25,17 +29,17 @@ export default function StudyPage() {
 
   const shuffledCards = useMemo(() => {
     if (deck && deck.cards.length > 0) {
-      // Shuffle cards for study session
-      const shuffled = [...deck.cards];
-      // Simple shuffle for variety
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled;
+      return shuffleArray(deck.cards);
     }
     return [];
   }, [deck, shuffleCount]);
+
+  // Initialize session start time when component mounts or reshuffles
+  useEffect(() => {
+    if (shuffledCards.length > 0 && !sessionStartTime) {
+      setSessionStartTime(new Date());
+    }
+  }, [shuffledCards.length, sessionStartTime]);
 
   if (!deck) {
     return (
@@ -71,6 +75,19 @@ export default function StudyPage() {
       setCurrentCardIndex(currentCardIndex + 1);
       setIsFlipped(false);
     } else {
+      // Save session when study is complete
+      if (sessionStartTime && studyStats.totalQuestions > 0) {
+        const session: StudySession = {
+          deckId,
+          mode: 'classic',
+          startTime: sessionStartTime,
+          endTime: new Date(),
+          cardsStudied: Array.from(cardsStudied),
+          correctAnswers: studyStats.correctAnswers,
+          totalQuestions: studyStats.totalQuestions,
+        };
+        addStudySession(session);
+      }
       setShowResults(true);
     }
   };
@@ -83,6 +100,8 @@ export default function StudyPage() {
   };
 
   const handleMarkCorrect = () => {
+    const cardId = shuffledCards[currentCardIndex].id;
+    setCardsStudied(prev => new Set(prev).add(cardId));
     setStudyStats({
       ...studyStats,
       correctAnswers: studyStats.correctAnswers + 1,
@@ -92,6 +111,8 @@ export default function StudyPage() {
   };
 
   const handleMarkIncorrect = () => {
+    const cardId = shuffledCards[currentCardIndex].id;
+    setCardsStudied(prev => new Set(prev).add(cardId));
     setStudyStats({
       ...studyStats,
       totalQuestions: studyStats.totalQuestions + 1,
@@ -104,6 +125,8 @@ export default function StudyPage() {
     setIsFlipped(false);
     setStudyStats({ correctAnswers: 0, totalQuestions: 0 });
     setShowResults(false);
+    setCardsStudied(new Set());
+    setSessionStartTime(null);
     // Trigger reshuffle by incrementing counter
     setShuffleCount(prev => prev + 1);
   };

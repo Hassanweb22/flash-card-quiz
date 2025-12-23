@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getStoredData, saveData, initializeSampleData, AppData } from '../lib/storage';
+import { StudySession } from '../lib/types';
 
 export function useLocalStorage() {
   const [data, setData] = useState<AppData>(() => getStoredData());
@@ -107,6 +108,29 @@ export function useLocalStorage() {
     });
   };
 
+  const addStudySession = (session: StudySession) => {
+    updateData({
+      ...data,
+      studySessions: [...data.studySessions, session],
+    });
+  };
+
+  const clearStudyHistory = (deckId?: string) => {
+    if (deckId) {
+      // Clear sessions for a specific deck
+      updateData({
+        ...data,
+        studySessions: data.studySessions.filter(session => session.deckId !== deckId),
+      });
+    } else {
+      // Clear all study history
+      updateData({
+        ...data,
+        studySessions: [],
+      });
+    }
+  };
+
   return {
     data,
     isInitialized,
@@ -116,6 +140,8 @@ export function useLocalStorage() {
     addCard,
     updateCard,
     deleteCard,
+    addStudySession,
+    clearStudyHistory,
   };
 }
 

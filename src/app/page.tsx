@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { DeckList } from '../components/ui/Deck';
+import { computeDeckStats } from '../lib/stats';
 import { toast, Toaster } from 'react-hot-toast';
 
 export default function Home() {
@@ -40,6 +41,16 @@ export default function Home() {
     }
   };
 
+  // Compute deck stats for showing last studied dates
+  const deckStatsMap = useMemo(() => {
+    const map = new Map();
+    data.decks.forEach(deck => {
+      const stats = computeDeckStats(data, deck.id);
+      map.set(deck.id, { lastStudied: stats.lastStudied });
+    });
+    return map;
+  }, [data]);
+
   if (!isInitialized) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -66,9 +77,14 @@ export default function Home() {
                   Create, study, and master your knowledge
                 </p>
               </div>
-              <Button onClick={() => setIsCreateModalOpen(true)}>
-                Create New Deck
-              </Button>
+              <div className="flex gap-3">
+                <Button onClick={() => router.push('/stats')} variant="outline">
+                  View Stats
+                </Button>
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                  Create New Deck
+                </Button>
+              </div>
             </div>
           </div>
         </header>
@@ -83,6 +99,7 @@ export default function Home() {
               decks={data.decks}
               onDeckClick={(deck) => router.push(`/deck/${deck.id}`)}
               onStudyClick={(deck) => router.push(`/study/${deck.id}`)}
+              deckStats={deckStatsMap}
             />
           </div>
         </main>

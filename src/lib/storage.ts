@@ -1,14 +1,16 @@
-import { Deck, Card } from './types';
+import { Deck, Card, StudySession } from './types';
 
 const STORAGE_KEY = 'flashcard-app-data';
 
 export interface AppData {
   decks: Deck[];
+  studySessions: StudySession[];
 }
 
 function getDefaultData(): AppData {
   return {
     decks: [],
+    studySessions: [],
   };
 }
 
@@ -21,6 +23,9 @@ export function getStoredData(): AppData {
     
     const parsed = JSON.parse(data);
     // Convert string dates back to Date objects
+    // Backward compatibility: if studySessions doesn't exist, default to empty array
+    const studySessions = parsed.studySessions || [];
+    
     return {
       ...parsed,
       decks: parsed.decks.map((deck: any) => ({
@@ -32,6 +37,11 @@ export function getStoredData(): AppData {
           createdAt: new Date(card.createdAt),
           updatedAt: new Date(card.updatedAt),
         })),
+      })),
+      studySessions: studySessions.map((session: any) => ({
+        ...session,
+        startTime: new Date(session.startTime),
+        endTime: session.endTime ? new Date(session.endTime) : null,
       })),
     };
   } catch (error) {
@@ -131,5 +141,5 @@ export function initializeSampleData(): void {
     ],
   };
 
-  saveData({ decks: [sampleDeck] });
+  saveData({ decks: [sampleDeck], studySessions: [] });
 }
