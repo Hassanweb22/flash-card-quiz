@@ -8,10 +8,11 @@ interface DeckProps {
   deck: DeckType;
   onClick?: () => void;
   onStudyClick?: () => void;
+  lastStudied?: Date | null;
   className?: string;
 }
 
-export function Deck({ deck, onClick, onStudyClick, className = '' }: DeckProps) {
+export function Deck({ deck, onClick, onStudyClick, lastStudied, className = '' }: DeckProps) {
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow duration-300 ${className}`}>
       <div className="p-6">
@@ -27,7 +28,7 @@ export function Deck({ deck, onClick, onStudyClick, className = '' }: DeckProps)
             {deck.cards.length} card{deck.cards.length !== 1 ? 's' : ''}
           </div>
           <div className="text-xs text-gray-400 dark:text-gray-500">
-            Created {formatDate(deck.createdAt)}
+            {lastStudied ? `Last studied ${formatDate(lastStudied)}` : `Created ${formatDate(deck.createdAt)}`}
           </div>
         </div>
       </div>
@@ -61,10 +62,11 @@ interface DeckListProps {
   decks: DeckType[];
   onDeckClick?: (deck: DeckType) => void;
   onStudyClick?: (deck: DeckType) => void;
+  deckStats?: Map<string, { lastStudied: Date | null }>;
   className?: string;
 }
 
-export function DeckList({ decks, onDeckClick, onStudyClick, className = '' }: DeckListProps) {
+export function DeckList({ decks, onDeckClick, onStudyClick, deckStats, className = '' }: DeckListProps) {
   if (decks.length === 0) {
     return (
       <div className="text-center py-12">
@@ -81,14 +83,18 @@ export function DeckList({ decks, onDeckClick, onStudyClick, className = '' }: D
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${className}`}>
-      {decks.map((deck) => (
-        <Deck
-          key={deck.id}
-          deck={deck}
-          onClick={() => onDeckClick?.(deck)}
-          onStudyClick={() => onStudyClick?.(deck)}
-        />
-      ))}
+      {decks.map((deck) => {
+        const stats = deckStats?.get(deck.id);
+        return (
+          <Deck
+            key={deck.id}
+            deck={deck}
+            onClick={() => onDeckClick?.(deck)}
+            onStudyClick={() => onStudyClick?.(deck)}
+            lastStudied={stats?.lastStudied}
+          />
+        );
+      })}
     </div>
   );
 }
